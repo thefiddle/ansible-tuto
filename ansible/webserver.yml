@@ -1,0 +1,9 @@
+---
+- name: "Setup webserver"
+  hosts: windows
+  gather_facts: false
+  roles:
+    - webserver
+
+
+

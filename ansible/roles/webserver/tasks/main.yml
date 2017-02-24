@@ -1,0 +1,22 @@
+---
+- name: "Install IIS Web-Server with sub features and management tools"
+  win_feature:
+    include_management_tools: true
+    include_sub_features: true
+    name: Web-Server
+    restart: true
+    state: present
+
+- name: "Create all web sites"
+  include: create_website.yml
+  vars:
+    web_dir: "{{ web_site_root }}/{{ item.name }}"
+    log_dir: "{{ log_root }}/{{ item.name }}"
+    web_site_name: "{{ item.name }}"
+    web_site_port: "{{ item.port }}"
+    web_site_ip: "{{ item.ip }}"
+
+  with_items: "{{ web_sites }}"
+
+- name: "IIS Started"
+  win_service:  name=w3svc state=started

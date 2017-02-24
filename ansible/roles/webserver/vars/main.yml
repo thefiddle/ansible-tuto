@@ -1,0 +1,13 @@
+# Variable can be commented
+web_site_root: "c:/Users/Administrator/Desktop/Sites/www"
+log_root: "c:/Users/Administrator/Desktop/Sites/Logs/"
+web_site_binding_suffix: ".testlocal.com"
+web_sites:
+  - name: hello
+    port: 8080
+    ip: "*"
+
+  - name: byebye
+    port: 8081
+    ip: "*"
+

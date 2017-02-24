@@ -1,0 +1,3 @@
+---
+- name: "Reboot windows host"
+  win_reboot: msg="Ansible asked reboot"

@@ -1,0 +1,880 @@
+<h1>An Ansible summary</h1>
+
+<p>Jon Warbrick, July 2014, V3.2 (for Ansible 1.7)</p>
+
+<h1>Configuration file</h1>
+
+<p><a href="http://docs.ansible.com/intro_configuration.html">intro_configuration.html</a></p>
+
+<p>First one found from of</p>
+
+<ul>
+<li>Contents of <code>$ANSIBLE_CONFIG</code></li>
+<li><code>./ansible.cfg</code></li>
+<li><code>~/.ansible.cfg</code></li>
+<li><code>/etc/ansible/ansible.cfg</code></li>
+</ul>
+
+<p>Configuration settings can be overridden by environment variables - see
+constants.py in the source tree for names.</p>
+
+<h1>Patterns</h1>
+
+<p><a href="http://docs.ansible.com/intro_patterns.html">intro_patterns.html</a></p>
+
+<p>Used on the <code>ansible</code> command line, or in playbooks.</p>
+
+<ul>
+<li><code>all</code> (or <code>*</code>)</li>
+<li>hostname: <code>foo.example.com</code></li>
+<li>groupname: <code>webservers</code></li>
+<li>or: <code>webservers:dbserver</code></li>
+<li>exclude: <code>webserver:!phoenix</code></li>
+<li>intersection: <code>webservers:&amp;staging</code></li>
+</ul>
+
+<p>Operators can be chained: <code>webservers:dbservers:&amp;staging:!phoenix</code></p>
+
+<p>Patterns can include variable substitutions: <code>{{foo}}</code>, wildcards:
+<code>*.example.com</code> or 192.168.1.*, and regular expressions:
+<code>~(web|db).*\.example\.com</code></p>
+
+<h1>Inventory files</h1>
+
+<p><a href="http://docs.ansible.com/intro_inventory.html">intro_inventory.html</a>,
+<a href="http://docs.ansible.com/intro_dynamic_inventory.html">intro_dynamic_inventory.html</a></p>
+
+<p>'INI-file' structure, blocks define groups. Hosts allowed in more than
+one group. Non-standard SSH port can follow hostname separated by ':'
+(but see also <code>ansible_ssh_port</code> below).</p>
+
+<p>Hostname ranges: <code>www[01:50].example.com</code>, <code>db-[a:f].example.com</code></p>
+
+<p>Per-host variables: <code>foo.example.com foo=bar baz=wibble</code></p>
+
+<ul>
+<li><code>[foo:children]</code>: new group <code>foo</code> containing all members if included groups</li>
+<li><code>[foo:vars]</code>: variable definitions for all members of group <code>foo</code></li>
+</ul>
+
+<p>Inventory file defaults to <code>/etc/ansible/hosts</code>. Veritable with <code>-i</code>
+or in the configuration file. The 'file' can also be a dynamic
+inventory script. If a directory, all contained files are processed.</p>
+
+<h1>Variable files:</h1>
+
+<p><a href="http://docs.ansible.com/intro_inventory.html">intro_inventory.html</a></p>
+
+<p>YAML; given inventory file at <code>./hosts</code>:</p>
+
+<ul>
+<li><code>./group_vars/foo</code>: variable definitions for all members of group <code>foo</code></li>
+<li><code>./host_vars/foo.example.com</code>: variable definitions for foo.example.com</li>
+</ul>
+
+<p><code>group_vars</code> and <code>host_vars</code> directories can also exist in the playbook
+directory. If both paths exist, variables in the playbook directory
+will be loaded second. </p>
+
+<h1>Behavioral inventory parameters:</h1>
+
+<p><a href="http://docs.ansible.com/intro_inventory.html">intro_inventory.html</a></p>
+
+<ul>
+<li><code>ansible_ssh_host</code></li>
+<li><code>ansible_ssh_port</code></li>
+<li><code>ansible_ssh_user</code></li>
+<li><code>ansible_ssh_pass</code></li>
+<li><code>ansible_sudo_pass</code></li>
+<li><code>ansible_connection</code></li>
+<li><code>ansible_ssh_private_key_file</code></li>
+<li><code>ansible_python_interpreter</code></li>
+<li><code>ansible_*_interpreter</code></li>
+</ul>
+
+<h1>Playbooks</h1>
+
+<p><a href="http://docs.ansible.com/playbooks_intro.html">playbooks_intro.html</a>,
+<a href="http://docs.ansible.com/playbooks_roles.html">playbooks_roles.html</a></p>
+
+<p>Playbooks are a YAML list of one or more plays. Most (all?) keys are
+optional. Lines can be broken on space with continuation lines
+indented.</p>
+
+<p>Playbooks consist of a list of one or more 'plays' and/or inclusions:</p>
+
+<pre><code>---
+- include: playbook.yml
+- &lt;play&gt;
+- ...
+</code></pre>
+
+<h2>Plays</h2>
+
+<p><a href="http://docs.ansible.com/playbooks_intro.html">playbooks_intro.html</a>,
+<a href="http://docs.ansible.com/playbooks_roles.htm">playbooks_roles.html</a>,
+<a href="http://docs.ansible.com/playbooks_variables.html">playbooks_variables.html</a>,
+<a href="http://docs.ansible.com/playbooks_conditionals.html">playbooks_conditionals.html</a>,
+<a href="http://docs.ansible.com/playbooks_acceleration.html">playbooks_acceleration.html</a>,
+<a href="http://docs.ansible.com/playbooks_delegation.html">playbooks_delegation.html</a>,
+<a href="http://docs.ansible.com/playbooks_prompts.html">playbooks_prompts.html</a>,
+<a href="http://docs.ansible.com/playbooks_tags.htm">playbooks_tags.html</a>
+<a href="https://groups.google.com/forum/#!topic/ansible-project/F9mIAfo6orc">Forum posting</a>
+<a href="https://groups.google.com/forum/#!topic/Ansible-project/MU_ws7zynnI">Forum postinb</a></p>
+
+<p>Plays consist of play metadata and a sequence of task and handler
+definitions, and roles.</p>
+
+<pre><code>- hosts: webservers
+  remote_user: root
+  sudo: yes
+  sudo_user: postgress
+  su: yes
+  su_user: exim
+  gather_facts: no
+  accelerate: no
+  accelerate_port: 5099
+  any_errors_fatal: yes
+  max_fail_percentage: 30
+  connection: local
+  serial: 5
+  vars:
+    http_port: 80
+  vars_files:
+    - "vars.yml"
+    - [ "try-first.yml", "try-second-.yml" ]
+  vars_prompt:
+    - name: "my_password2"
+      prompt: "Enter password2"
+      default: "secret"
+      private: yes
+      encrypt: "md5_crypt"
+      confirm: yes
+      salt: 1234
+      salt_size: 8
+  tags: 
+    - stuff
+    - nonsence
+  pre_tasks:
+    - &lt;task&gt;
+    - ...
+  roles:
+    - common
+    - { role: common, port: 5000, when: "bar == 'Baz'", tags :[one, two] }
+    - { role: common, when: month == 'Jan' }
+    - ...
+  tasks:
+    - include: tasks.yaml
+    - include: tasks.yaml foo=bar baz=wibble
+    - include: tasks.yaml
+      vars:
+        foo: aaa 
+        baz:
+          - z
+          - y
+    - { include: tasks.yaml, foo: zzz, baz: [a,b]}
+    - include: tasks.yaml
+      when: day == 'Thursday'
+    - &lt;task&gt;
+    - ...
+  post_tasks:
+    - &lt;task&gt;
+    - ...
+  handlers:
+    - include: handlers.yml
+    - &lt;task&gt;
+    - ...
+</code></pre>
+
+<p>Using <code>encrypt</code> with <code>vars_prompt</code> requires that
+<a href="http://pythonhosted.org/passlib/">Passlib</a> is installed.</p>
+
+<p>In addition the source code implies the availability of the following
+which don't <em>seem</em> to be mentioned in the documentation: <code>name</code>, <code>user</code> (deprecated), <code>port</code>, <code>accelerate_ipv6</code>, <code>role_names</code>, and <code>vault_password</code>.</p>
+
+<h2>Task definitions</h2>
+
+<p><a href="http://docs.ansible.com/playbooks_intro.html">playbooks_intro.html</a>,
+<a href="http://docs.ansible.com/playbooks_roles.html">playbooks_roles.html</a>,
+<a href="http://docs.ansible.com/playbooks_async.html">playbooks_async.html</a>,
+<a href="http://docs.ansible.com/[playbooks_checkmode.html">playbooks_checkmode.html</a>,
+<a href="http://docs.ansible.com/playbooks_delegation.html">playbooks_delegation.html</a>,
+<a href="http://docs.ansible.com/playbooks_environment.html">playbooks_environment.html</a>,
+<a href="http://docs.ansible.com/playbooks_error_handling.html">playbooks_error_handling.html</a>,
+<a href="http://docs.ansible.com/playbooks_tags.html">playbooks_tags.html</a>
+<a href="http://www.ansible.com/blog/2014/02/28/ansible-1-5-released">ansible-1-5-released</a>
+<a href="https://groups.google.com/forum/#!topic/ansible-project/F9mIAfo6orc">Forum posting</a>
+<a href="https://github.com/ansible/ansible-examples/blob/master/language_features/complex_args.yml">Ansible examples</a></p>
+
+<p>Each task definition is a list of items, normally including at least a
+name and a module invocation:</p>
+
+<pre><code>- name: task
+  remote_user: apache
+  sudo: yes
+  sudo_user: postgress
+  sudo_pass: wibble
+  su: yes
+  su_user: exim
+  ignore_errors: True
+  delegate_to: 127.0.0.1
+  async: 45
+  poll: 5
+  always_run: no
+  run_once: false
+  meta: flush_handlers
+  no_log: true
+  environment: &lt;hash&gt;
+  environment:
+    var1: val1
+    var2: val2
+  tags: 
+    - stuff
+    - nonsence
+  &lt;module&gt;: src=template.j2 dest=/etc/foo.conf
+  action: &lt;module&gt;, src=template.j2 dest=/etc/foo.conf
+  action: &lt;module&gt;
+  args:
+      src=template.j2
+      dest=/etc/foo.conf
+  local_action: &lt;module&gt; /usr/bin/take_out_of_pool {{ inventory_hostname }}
+  when: ansible_os_family == "Debian"
+  register: result
+  failed_when: "'FAILED' in result.stderr"
+  changed_when: result.rc != 2
+  notify:
+    - restart apache
+</code></pre>
+
+<p><code>delegate_to: 127.0.0.1</code> is implied by <code>local_action:</code></p>
+
+<p>The forms <code>&lt;module&gt;: &lt;args&gt;</code>, <code>action: &lt;module&gt; &lt;args&gt;</code>, and <code>local_action: &lt;module&gt; &lt;args&gt;</code> are mutually-exclusive. </p>
+
+<p>Additional keys <code>when_*</code>, <code>until</code>, <code>retries</code> and <code>delay</code> are documented below under 'Loops'.</p>
+
+<p>In addition the source code implies the availability of the following
+which don't <em>seem</em> to be mentioned in the documentation: 
+<code>first_available_file</code> (deprecated), <code>transport</code>, 
+<code>connection</code>, <code>any_errors_fatal</code>.</p>
+
+<h1>Roles</h1>
+
+<p><a href="http://docs.ansible.com/playbooks_roles.html">playbooks_roles.html</a></p>
+
+<p>Directory structure:</p>
+
+<pre><code>playbook.yml
+roles/
+   common/
+     tasks/
+       main.yml
+     handlers/
+       main.yml
+     vars/
+       main.yml
+     meta/
+       main.yml
+     defaults/
+       main.yml
+     files/
+     templates/
+     library/
+</code></pre>
+
+<h1>Modules</h1>
+
+<p><a href="http://docs.ansible.com/modules.htm">modules.htm</a>,
+<a href="http://docs.ansible.com/modules_by_category.html">modules_by_category.html</a></p>
+
+<p>List all installed modules with</p>
+
+<pre><code>ansible-doc --list
+</code></pre>
+
+<p>Document a particular module with</p>
+
+<pre><code>ansible-doc &lt;module&gt;
+</code></pre>
+
+<p>Show playbook snippet for specified module</p>
+
+<pre><code>ansible-doc -i &lt;module&gt;
+</code></pre>
+
+<h1>Variables</h1>
+
+<p><a href="http://docs.ansible.com/playbooks_roles.html">playbooks_roles.html</a>,
+<a href="http://docs.ansible.com/playbooks_variables.html">playbooks_variables.html</a></p>
+
+<p>Names: letters, digits, underscores; starting with a letter.</p>
+
+<h2>Substitution examples:</h2>
+
+<ul>
+<li><code>{{ var }}</code></li>
+<li><code>{{ var["key1"]["key2"]}}</code></li>
+<li><code>{{ var.key1.key2 }}</code></li>
+<li><code>{{ list[0] }}</code></li>
+</ul>
+
+<p>YAML requires an item starting with a variable substitution to be quoted.</p>
+
+<h2>Sources:</h2>
+
+<ul>
+<li>Highest priority:
+<ul>
+<li><code>--extra-vars</code> on the command line</li>
+</ul></li>
+<li>General:
+<ul>
+<li><code>vars</code> component of a playbook</li>
+<li>From files referenced by <code>vars_file</code> in a playbook</li>
+<li>From included files (incl. roles)</li>
+<li>Parameters passed to includes</li>
+<li><code>register:</code> in tasks</li>
+</ul></li>
+<li>Lower priority:
+<ul>
+<li>Inventory (set on host or group)</li>
+</ul></li>
+<li>Lower priority:
+<ul>
+<li>Facts (see below)</li>
+<li>Any <code>/etc/ansible/facts.d/filename.fact</code> on managed machines 
+(sets variables with `ansible_local.filename. prefix)</li>
+</ul></li>
+<li>Lowest priority
+<ul>
+<li>Role defaults (from defaults/main.yml)</li>
+</ul></li>
+</ul>
+
+<h2>Built-in:</h2>
+
+<ul>
+<li><code>hostvars</code> (e.g. <code>hostvars[other.example.com][...]</code>)</li>
+<li><code>group_names</code> (groups containing current host)</li>
+<li><code>groups</code> (all groups and hosts in the inventory)</li>
+<li><code>inventory_hostname</code> (current host as in inventory)</li>
+<li><code>inventory_hostname_short</code> (first component of inventory_hostname)</li>
+<li><code>play_hosts</code> (hostnames in scope for current play)</li>
+<li><code>inventory_dir</code> (location of the inventory)</li>
+<li><code>inventoty_file</code> (name of the inventory)</li>
+</ul>
+
+<h2>Facts:</h2>
+
+<p>Run <code>ansible hostname -m setup</code>, but in particular:</p>
+
+<ul>
+<li><code>ansible_distribution</code></li>
+<li><code>ansible_distribution_release</code></li>
+<li><code>ansible_distribution_version</code></li>
+<li><code>ansible_fqdn</code></li>
+<li><code>ansible_hostname</code></li>
+<li><code>ansible_os_family</code></li>
+<li><code>ansible_pkg_mgr</code></li>
+<li><code>ansible_default_ipv4.address</code></li>
+<li><code>ansible_default_ipv6.address</code></li>
+</ul>
+
+<h2>Content of 'registered' variables:</h2>
+
+<p><a href="http://docs.ansible.com/playbooks_conditionals.html">playbooks_conditionals.html</a>,
+<a href="http://docs.ansible.com/playbooks_loops.html">playbooks_loops.html</a></p>
+
+<p>Depends on module. Typically includes:</p>
+
+<ul>
+<li><code>.rc</code></li>
+<li><code>.stdout</code></li>
+<li><code>.stdout_lines</code></li>
+<li><code>.changed</code></li>
+<li><code>.msg</code> (following failure)</li>
+<li><code>.results</code> (when used in a loop)</li>
+</ul>
+
+<p>See also <code>failed</code>, <code>changed</code>, etc filters.</p>
+
+<p>When used in a loop the <code>result</code> element is a list containing all
+responses from the module.</p>
+
+<h2>Additionally available in templates:</h2>
+
+<ul>
+<li><code>ansible_managed</code>: string containing the information below</li>
+<li><code>template_host</code>: node name of the template’s machine</li>
+<li><code>template_uid</code>: the owner</li>
+<li><code>template_path</code>: absolute path of the template</li>
+<li><code>template_fullpath</code>: the absolute path of the template</li>
+<li><code>template_run_date</code>: the date that the template was rendered</li>
+</ul>
+
+<h1>Filters</h1>
+
+<p><a href="http://docs.ansible.com/playbooks_variables.html">playbooks_variables.html</a></p>
+
+<ul>
+<li><code>{{ var | to_nice_json }}</code></li>
+<li><code>{{ var | to_json }}</code></li>
+<li><code>{{ var | from_json }}</code></li>
+<li><code>{{ var | to_nice_yml }}</code></li>
+<li><code>{{ var | to_yml }}</code></li>
+<li><code>{{ var | from_yml }}</code></li>
+<li><code>{{ result | failed }}</code></li>
+<li><code>{{ result | changed }}</code></li>
+<li><code>{{ result | success }}</code></li>
+<li><code>{{ result | skipped }}</code></li>
+<li><code>{{ var | manditory }}</code></li>
+<li><code>{{ var | default(5) }}</code></li>
+<li><code>{{ list1 | unique }}</code></li>
+<li><code>{{ list1 | union(list2) }}</code></li>
+<li><code>{{ list1 | intersect(list2) }}</code></li>
+<li><code>{{ list1 | difference(list2) }}</code></li>
+<li><code>{{ list1 | symmetric_difference(list2) }}</code></li>
+<li><code>{{ ver1 | version_compare(ver2, operator='&gt;=', strict=True }}</code></li>
+<li><code>{{ list | random }}</code></li>
+<li><code>{{ number | random }}</code></li>
+<li><code>{{ number | random(start=1, step=10) }}</code></li>
+<li><code>{{ list | join(" ") }}</code></li>
+<li><code>{{ path | basename }}</code></li>
+<li><code>{{ path | dirname }}</code></li>
+<li><code>{{ path | expanduser }}</code></li>
+<li><code>{{ path | realpath }}</code></li>
+<li><code>{{ var | b64decode }}</code></li>
+<li><code>{{ var | b64encode }}</code></li>
+<li><code>{{ filename | md5 }}</code></li>
+<li><code>{{ var | bool }}</code></li>
+<li><code>{{ var | int }}</code></li>
+<li><code>{{ var | quote }}</code></li>
+<li><code>{{ var | md5 }}</code></li>
+<li><code>{{ var | fileglob }}</code></li>
+<li><code>{{ var | match }}</code></li>
+<li><code>{{ var | search }}</code></li>
+<li><code>{{ var | regex }}</code></li>
+<li><code>{{ var | regexp_replace('from', 'to' )}}</code></li>
+</ul>
+
+<p>See also <a href="http://jinja.pocoo.org/docs/templates/#builtin-filters">default jinja2
+filters</a>. In
+YAML, values starting <code>{</code> must be quoted.</p>
+
+<h1>Lookups</h1>
+
+<p><a href="http://docs.ansible.com/playbooks_lookups.html">playbooks_lookups.html</a></p>
+
+<p>Lookups are evaluated on the control machine. </p>
+
+<ul>
+<li><code>{{ lookup('file', '/etc/foo.txt') }}</code></li>
+<li><code>{{ lookup('password', '/tmp/passwordfile length=20 chars=ascii_letters,digits') }}</code></li>
+<li><code>{{ lookup('env','HOME') }}</code></li>
+<li><code>{{ lookup('pipe','date') }}</code></li>
+<li><code>{{ lookup('redis_kv', 'redis://localhost:6379,somekey') }}</code></li>
+<li><code>{{ lookup('dnstxt', 'example.com') }}</code></li>
+<li><code>{{ lookup('template', './some_template.j2') }}</code></li>
+</ul>
+
+<p>Lookups can be assigned to variables and will be evaluated each time
+the variable is used.</p>
+
+<p>Lookup plugins also support loop iteration (see below).</p>
+
+<h1>Conditions</h1>
+
+<p><a href="http://docs.ansible.com/playbooks_conditionals.html">playbooks_conditionals.html</a></p>
+
+<p><code>when: &lt;condition&gt;</code>, where condition is:</p>
+
+<ul>
+<li><code>var == "Vaue"</code>, <code>var &gt;= 5</code>, etc.</li>
+<li><code>var</code>, where <code>var</code> coreces to boolean (yes, true, True, TRUE)</li>
+<li><code>var is defined</code>, <code>var is not defined</code></li>
+<li><code>&lt;condition1&gt; and &lt;condition2&gt;</code> (also <code>or</code>?)</li>
+</ul>
+
+<p>Combined with <code>with_items</code>, the when statement is processed for each item.</p>
+
+<p><code>when</code> can also be applied to includes and roles. Conditional Imports
+and variable substitution in file and template names can avoid the
+need for explicit conditionals.</p>
+
+<h1>Loops</h1>
+
+<p><a href="http://docs.ansible.com/playbooks_loops.html">playbooks_loops.html</a></p>
+
+<p>In addition the source code implies the availability of the following
+which don't <em>seem</em> to be mentioned in the documentation: <code>csvfile</code>, <code>etcd</code>, <code>inventory_hostname</code>. </p>
+
+<h2>Standard:</h2>
+
+<pre><code>- user: name={{ item }} state=present groups=wheel
+  with_items:
+    - testuser1
+    - testuser2
+
+- name: add several users
+  user: name={{ item.name }} state=present groups={{ item.groups }}
+  with_items:
+    - { name: 'testuser1', groups: 'wheel' }
+    - { name: 'testuser2', groups: 'root' }
+
+  with_items: somelist
+</code></pre>
+
+<h2>Nested:</h2>
+
+<pre><code>- mysql_user: name={{ item[0] }} priv={{ item[1] }}.*:ALL                
+                           append_privs=yes password=foo
+  with_nested:
+    - [ 'alice', 'bob', 'eve' ]
+    - [ 'clientdb', 'employeedb', 'providerdb' ]
+</code></pre>
+
+<h2>Over hashes:</h2>
+
+<p>Given</p>
+
+<pre><code>---
+users:
+  alice:
+    name: Alice Appleworth
+    telephone: 123-456-7890
+  bob:
+    name: Bob Bananarama
+    telephone: 987-654-3210
+
+tasks:
+  - name: Print phone records
+    debug: msg="User {{ item.key }} is {{ item.value.name }} 
+                     ({{ item.value.telephone }})"
+    with_dict: users
+</code></pre>
+
+<h2>Fileglob:</h2>
+
+<pre><code>- copy: src={{ item }} dest=/etc/fooapp/ owner=root mode=600
+  with_fileglob:
+    - /playbooks/files/fooapp/*
+</code></pre>
+
+<p>In a role, relative paths resolve relative to the
+<code>roles/&lt;rolename&gt;/files</code> directory.</p>
+
+<h2>With content of file:</h2>
+
+<p>(see example for <code>authorized_key</code> module)</p>
+
+<pre><code>- authorized_key: user=deploy key="{{ item }}"
+  with_file:
+    - public_keys/doe-jane
+    - public_keys/doe-john
+</code></pre>
+
+<p>See also the <code>file</code> lookup when the content of a file is needed.</p>
+
+<h2>Parallel sets of data:</h2>
+
+<p>Given</p>
+
+<pre><code>---
+alpha: [ 'a', 'b', 'c', 'd' ]
+numbers:  [ 1, 2, 3, 4 ]
+
+- debug: msg="{{ item.0 }} and {{ item.1 }}"
+  with_together:
+    - alpha
+    - numbers
+</code></pre>
+
+<h2>Subelements:</h2>
+
+<p>Given</p>
+
+<pre><code>---
+users:
+  - name: alice
+    authorized:
+      - /tmp/alice/onekey.pub
+      - /tmp/alice/twokey.pub
+  - name: bob
+    authorized:
+      - /tmp/bob/id_rsa.pub
+
+- authorized_key: "user={{ item.0.name }} 
+                   key='{{ lookup('file', item.1) }}'"
+  with_subelements:
+     - users
+     - authorized
+</code></pre>
+
+<h2>Integer sequence:</h2>
+
+<p>Decimal, hexadecimal (0x3f8) or octal (0600)</p>
+
+<pre><code>- user: name={{ item }} state=present groups=evens
+  with_sequence: start=0 end=32 format=testuser%02x
+
+  with_sequence: start=4 end=16 stride=2
+
+  with_sequence: count=4
+</code></pre>
+
+<h2>Random choice:</h2>
+
+<pre><code>- debug: msg={{ item }}
+  with_random_choice:
+     - "go through the door"
+     - "drink from the goblet"
+     - "press the red button"
+     - "do nothing"
+</code></pre>
+
+<h2>Do-Until:</h2>
+
+<pre><code>- action: shell /usr/bin/foo
+  register: result
+  until: result.stdout.find("all systems go") != -1
+  retries: 5
+  delay: 10
+</code></pre>
+
+<h2>Results of a local program:</h2>
+
+<pre><code>- name: Example of looping over a command result
+  shell: /usr/bin/frobnicate {{ item }}
+  with_lines: /usr/bin/frobnications_per_host 
+                       --param {{ inventory_hostname }}
+</code></pre>
+
+<p>To loop over the results of a remote program, use <code>register: result</code>
+and then <code>with_items: result.stdout_lines</code> in a subsequent
+task.</p>
+
+<h2>Indexed list:</h2>
+
+<pre><code>- name: indexed loop demo
+  debug: msg="at array position {{ item.0 }} there is 
+                                     a value {{ item.1 }}"
+  with_indexed_items: some_list
+</code></pre>
+
+<h2>Flattened list:</h2>
+
+<pre><code>---
+# file: roles/foo/vars/main.yml
+packages_base:
+  - [ 'foo-package', 'bar-package' ]
+packages_apps:
+  - [ ['one-package', 'two-package' ]]
+  - [ ['red-package'], ['blue-package']]
+
+- name: flattened loop demo
+  yum: name={{ item }} state=installed
+  with_flattened:
+    - packages_base
+    - packages_apps
+</code></pre>
+
+<h2>First found:</h2>
+
+<pre><code>- name: template a file
+  template: src={{ item }} dest=/etc/myapp/foo.conf
+  with_first_found:
+    - files:
+        - {{ ansible_distribution }}.conf
+        - default.conf
+      paths:
+         - search_location_one/somedir/
+         - /opt/other_location/somedir/
+</code></pre>
+
+<h1>Tags</h1>
+
+<p>Both plays and tasks support a <code>tags:</code> attribute.</p>
+
+<pre><code>- template: src=templates/src.j2 dest=/etc/foo.conf
+  tags:
+    - configuration
+</code></pre>
+
+<p>Tags can be applied to roles and includes (effectively tagging all
+included tasks)</p>
+
+<pre><code>roles:
+    - { role: webserver, port: 5000, tags: [ 'web', 'foo' ] }
+
+- include: foo.yml tags=web,foo
+</code></pre>
+
+<p>To select by tag:</p>
+
+<pre><code>ansible-playbook example.yml --tags "configuration,packages"
+ansible-playbook example.yml --skip-tags "notification"
+</code></pre>
+
+<h1>Command lines</h1>
+
+<h2>ansible</h2>
+
+<pre><code>Usage: ansible &lt;host-pattern&gt; [options]
+
+Options:
+  -a MODULE_ARGS, --args=MODULE_ARGS
+                        module arguments
+  -k, --ask-pass        ask for SSH password
+  --ask-su-pass         ask for su password
+  -K, --ask-sudo-pass   ask for sudo password
+  --ask-vault-pass      ask for vault password
+  -B SECONDS, --background=SECONDS
+                        run asynchronously, failing after X seconds
+                        (default=N/A)
+  -C, --check           don't make any changes; instead, try to predict some
+                        of the changes that may occur
+  -c CONNECTION, --connection=CONNECTION
+                        connection type to use (default=smart)
+  -f FORKS, --forks=FORKS
+                        specify number of parallel processes to use
+                        (default=5)
+  -h, --help            show this help message and exit
+  -i INVENTORY, --inventory-file=INVENTORY
+                        specify inventory host file
+                        (default=/etc/ansible/hosts)
+  -l SUBSET, --limit=SUBSET
+                        further limit selected hosts to an additional pattern
+  --list-hosts          outputs a list of matching hosts; does not execute
+                        anything else
+  -m MODULE_NAME, --module-name=MODULE_NAME
+                        module name to execute (default=command)
+  -M MODULE_PATH, --module-path=MODULE_PATH
+                        specify path(s) to module library
+                        (default=/usr/share/ansible)
+  -o, --one-line        condense output
+  -P POLL_INTERVAL, --poll=POLL_INTERVAL
+                        set the poll interval if using -B (default=15)
+  --private-key=PRIVATE_KEY_FILE
+                        use this file to authenticate the connection
+  -S, --su              run operations with su
+  -R SU_USER, --su-user=SU_USER
+                        run operations with su as this user (default=root)
+  -s, --sudo            run operations with sudo (nopasswd)
+  -U SUDO_USER, --sudo-user=SUDO_USER
+                        desired sudo user (default=root)
+  -T TIMEOUT, --timeout=TIMEOUT
+                        override the SSH timeout in seconds (default=10)
+  -t TREE, --tree=TREE  log output to this directory
+  -u REMOTE_USER, --user=REMOTE_USER
+                        connect as this user (default=jw35)
+  --vault-password-file=VAULT_PASSWORD_FILE
+                        vault password file
+  -v, --verbose         verbose mode (-vvv for more, -vvvv to enable
+                        connection debugging)
+  --version             show program's version number and exit
+</code></pre>
+
+<h2>ansible-playbook</h2>
+
+<pre><code>Usage: ansible-playbook playbook.yml
+
+Options:
+  -k, --ask-pass        ask for SSH password
+  --ask-su-pass         ask for su password
+  -K, --ask-sudo-pass   ask for sudo password
+  --ask-vault-pass      ask for vault password
+  -C, --check           don't make any changes; instead, try to predict some
+                        of the changes that may occur
+  -c CONNECTION, --connection=CONNECTION
+                        connection type to use (default=smart)
+  -D, --diff            when changing (small) files and templates, show the
+                        differences in those files; works great with --check
+  -e EXTRA_VARS, --extra-vars=EXTRA_VARS
+                        set additional variables as key=value or YAML/JSON
+  -f FORKS, --forks=FORKS
+                        specify number of parallel processes to use
+                        (default=5)
+  -h, --help            show this help message and exit
+  -i INVENTORY, --inventory-file=INVENTORY
+                        specify inventory host file
+                        (default=/etc/ansible/hosts)
+  -l SUBSET, --limit=SUBSET
+                        further limit selected hosts to an additional pattern
+  --list-hosts          outputs a list of matching hosts; does not execute
+                        anything else
+  --list-tasks          list all tasks that would be executed
+  -M MODULE_PATH, --module-path=MODULE_PATH
+                        specify path(s) to module library
+                        (default=/usr/share/ansible)
+  --private-key=PRIVATE_KEY_FILE
+                        use this file to authenticate the connection
+  --skip-tags=SKIP_TAGS
+                        only run plays and tasks whose tags do not match these
+                        values
+  --start-at-task=START_AT
+                        start the playbook at the task matching this name
+  --step                one-step-at-a-time: confirm each task before running
+  -S, --su              run operations with su
+  -R SU_USER, --su-user=SU_USER
+                        run operations with su as this user (default=root)
+  -s, --sudo            run operations with sudo (nopasswd)
+  -U SUDO_USER, --sudo-user=SUDO_USER
+                        desired sudo user (default=root)
+  --syntax-check        perform a syntax check on the playbook, but do not
+                        execute it
+  -t TAGS, --tags=TAGS  only run plays and tasks tagged with these values
+  -T TIMEOUT, --timeout=TIMEOUT
+                        override the SSH timeout in seconds (default=10)
+  -u REMOTE_USER, --user=REMOTE_USER
+                        connect as this user (default=jw35)
+  --vault-password-file=VAULT_PASSWORD_FILE
+                        vault password file
+  -v, --verbose         verbose mode (-vvv for more, -vvvv to enable
+                        connection debugging)
+  --version             show program's version number and exit
+</code></pre>
+
+<h2>ansible-vault</h2>
+
+<p>playbooks_vault.html</p>
+
+<pre><code>Usage: ansible-vault [create|decrypt|edit|encrypt|rekey] [--help] [options] file_name
+
+Options:
+  -h, --help  show this help message and exit
+
+See 'ansible-vault &lt;command&gt; --help' for more information on a specific command.
+</code></pre>
+
+<h2>ansible-doc</h2>
+
+<pre><code>Usage: ansible-doc [options] [module...]
+
+Show Ansible module documentation
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -M MODULE_PATH, --module-path=MODULE_PATH
+                             Ansible modules/ directory
+  -l, --list            List available modules
+  -s, --snippet         Show playbook snippet for specified module(s)
+  -v                    Show version number and exit
+</code></pre>
+
+<h2>ansible-galaxy</h2>
+
+<pre><code>Usage: ansible-galaxy [init|info|install|list|remove] [--help] [options] ...
+
+Options:
+  -h, --help  show this help message and exit
+
+  See 'ansible-galaxy &lt;command&gt; --help' for more information on a
+  specific command
+</code></pre>
+
+<h2>ansible-pull</h2>
+
+<pre><code>Usage: ansible-pull [options] [playbook.yml]
+
+ansible-pull: error: URL for repository not specified, use -h for help
+</code></pre>

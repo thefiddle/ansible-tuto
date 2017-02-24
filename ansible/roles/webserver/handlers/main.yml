@@ -1,0 +1,6 @@
+---
+- name: "IIS Started"
+  win_service:  name=w3svc state=started
+
+- name: "WAS Started"
+  win_service:  name=was state=started

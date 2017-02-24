@@ -1,0 +1,47 @@
+---
+- name: "Create site root dir"
+  win_file: path="{{ web_dir }}" state=directory
+
+- name: "Create website log dirs"
+  win_file: path="{{ log_dir }}" state=directory
+
+- name : "Delete Default Web Site"
+  win_iis_website:
+    name: "Default Web Site"
+    state: absent
+
+- name: "Deloy website file"
+  win_template: src="templates/index.html.j2" dest="{{ web_dir }}/index.html"
+
+- name: "Ensure IIS_IUSRS has right on web root"
+  win_acl:
+    path: "{{ web_site_root }}/{{ web_site_name }}"
+    user: Everyone
+    rights: FullControl
+    type: allow
+    state: present
+    inherit: ContainerInherit, ObjectInherit
+    propagation: 'None'
+
+
+- name: "Create IIS Website"
+  win_iis_website:
+    hostname: "{{ web_site_name }}.local.com"
+    ip: "{{ web_site_ip }}"
+    name: "{{ web_site_name }}"
+    parameters: "logfile.directory:{{ log_root }}/{{ web_site_name }}"
+    physical_path: "{{ web_site_root }}/{{ web_site_name }}"
+    port: "{{ web_site_port }}"
+    state: started
+
+
+- name: "Open Firewall for website"
+  win_firewall_rule:
+      name: "{{ web_site_name }}.local.com"
+      enable: yes
+      state: present
+      force: true
+      localport: "{{ web_site_port }}"
+      action: allow
+      direction: In
+      protocol: TCP

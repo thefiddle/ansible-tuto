@@ -1,0 +1,6 @@
+---
+- name: "Reboot hosts"
+  hosts: windows
+  tasks:
+    - win_reboot:
+            msg: "Test reboot"

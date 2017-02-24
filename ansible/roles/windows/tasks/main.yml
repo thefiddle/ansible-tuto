@@ -1,0 +1,14 @@
+#---
+#- name: "Setup Language env"
+#  script: files/ChangeLanguage.ps1 {{ desktop_language }}
+#
+#
+#- name: "Create IIS Shortcut"
+#  win_shortcut:
+#    src: "%WINDIR%/sytem32/inetsrv/InetMgr.exe"
+#    dest: "%WINDIR%/Users/Administrator/Desktop/IIS_MGR.lnk"
+#
+
+---
+- name: "Setup Language env"
+  script: "files/ChangeLanguage.ps1 {{ desktop_language }}"

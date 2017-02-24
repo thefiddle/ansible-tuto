@@ -1,0 +1,499 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="./screen.css" type="text/css" />
+</head>
+<body>
+<h1 id="vagrant-and-ansible-tuto-for-windows-deployement">VAGRANT AND ANSIBLE : TUTO FOR WINDOWS DEPLOYEMENT</h1>
+<hr />
+<h2 id="introduction">INTRODUCTION</h2>
+<p>In this tutorial, we will learn how to use two very useful tools :</p>
+<ol style="list-style-type: decimal">
+<li><strong>vagrant</strong> for vm managing easily on a desktop pc</li>
+<li><strong>ansible</strong> for deploying stuff on a Windows server</li>
+</ol>
+<p>This will be achieved with the simple architecture</p>
+<hr />
+<h2 id="vagrant">VAGRANT</h2>
+<p>In this part, we will create the vms that will be used to run ansible. These vm will be created by <strong>vagrant</strong>, which will manage the vm provider <strong>virtualbox</strong>.</p>
+<p>For windows host, you can get these tools there :</p>
+<ul>
+<li><a href="http://download.virtualbox.org/virtualbox/5.1.14/VirtualBox-5.1.14-112924-Win.exe">virtualbox</a></li>
+<li><a href="https://releases.hashicorp.com/vagrant/1.9.1/vagrant_1.9.1.msi">vagrant</a></li>
+</ul>
+<p>For linux hosts :</p>
+<pre><code>apt-get install virtualbox vagrant</code></pre>
+<p>The next steps are easy :</p>
+<ol style="list-style-type: decimal">
+<li>Fetch the <strong>vagrant box</strong> used as a base system image</li>
+<li>Edit the <strong>Vagrantfile</strong> to configure our vm</li>
+<li>Make provisionning on the VMs to get everything ready to use ansible</li>
+<li>Use <strong>vagrant</strong> to start/stop the vm</li>
+<li>Use <strong>vagrant</strong> to connect to the guests with a note about credentials</li>
+</ol>
+<h3 id="fetch-the-vagrant-box">1/ Fetch the vagrant box</h3>
+<p>Vagrant uses box to create guests VM. These boxes are like os ISO wrappers for virtual machines providers that vagrant can use to create VMs. These box contains installed systems images with basic needs to communicate with vm provider. They also provide a public free catalog of boxes in which you can find a lot of systems.</p>
+<p><a href="https://atlas.hashicorp.com/boxes/search">Box Catalog</a>.</p>
+<p>For this tutorial we need two box : the windows box &quot;opentable/win-2012r2-standard-amd64-nocm&quot; and the ubuntu box &quot;ubuntu/trusty64&quot;. To download the box:</p>
+<pre><code>vagrant box add opentable/win-2012r2-standard-amd64-nocm --provider virtualbox
+vagrant box add ubuntu/trusty64 --provider virtualbox</code></pre>
+<h3 id="edit-the-vagrantfile">2/ Edit the VagrantFile</h3>
+<p>The <strong><em>Vagrantfile</em></strong> is where we will configure the vms that vagrant will create calling the provider. In this file, we will configure:</p>
+<ul>
+<li>Box used for our vm</li>
+<li>Resources cpu / memory of the vm</li>
+<li>Network rules for the guests</li>
+<li>Sync folder between host and guest</li>
+<li>VM provider customization <a href="https://www.virtualbox.org/manual/ch08.html#vboxmanage-modifyvm">options for virtualbox</a></li>
+<li>Provisionning for preparing the machine</li>
+</ul>
+<p>When initiating a project, we can create a <strong><em>Vagrantfile</em></strong> for a single VM managing with the command :</p>
+<pre><code>vagrant init  opentable/win-2012r2-standard-amd64-nocm</code></pre>
+<p>This will only create the <strong><em>Vagrantfile</em></strong> and ensure <strong><em>opentable/win-2012r2-standard-amd64-nocm</em></strong> box is present. For this tuto, we will use the Vagrantfile provided that contains defintions for all of our vms.</p>
+<p>Network config: Guests should get a private network with host, that MUST NOT be in the same subnet as the hosts subnet. It also allow have a static IP for the vm.</p>
+<pre><code>VBoxManage list bridgedifs</code></pre>
+<h3 id="provison-the-guests">3/ Provison the guests :</h3>
+<p>The vagrant provisionner runs on both machines after creation of the wm or when explicit calling <strong>vagrant provision</strong> command. The scripts bash and powershell provided in provision directory will automatically do the steps for you. To sum up :</p>
+<ul>
+<li><p>For linux ansible guest, the only thing to do is install ansible and the pywinrm python module, used by ansible to communicate with the windows guest. This is done in the provisionning script <a href="provision/ansible-master.sh" class="uri">provision/ansible-master.sh</a></p></li>
+<li><p>For windows guest, we will enable remote powershell using <a href="provision/ConfigureRemotingForAnsible.ps1" class="uri">provision/ConfigureRemotingForAnsible.ps1</a> script that you can find on Ansible Windows documentation. The previous script <a href="provision/setup_windows_guest.ps1%5D">provision/setup_windows_guest.ps1</a> used in Vagrantfile is used to set up french Language on systems, so we will have our azerty set up when doing rdp</p></li>
+</ul>
+<h3 id="start---stop-the-vms">4/ Start - stop the vms</h3>
+<p>Once done, you will be able to create guest using the Vagrantfile.</p>
+<pre><code>vagrant up ansible-master
+vagrant up windows-guest</code></pre>
+<p>This will create and run the vm if not created, only start if created and stopped</p>
+<p>To stop a vm :</p>
+<pre><code>vagrant halt ansible-master
+vagrant halt windows-guest</code></pre>
+<p>To restart a vm, with provisionning at start line 2 :</p>
+<pre><code>vagrant reload ansible-master
+vagrant reload --provision windows-guest</code></pre>
+<p>To destroy the vm :</p>
+<pre><code>vagrant destroy ansible-master
+vagrant destroy windows-guest</code></pre>
+<p>Provision scripts runs when vagrant up is called if the vm is not already created. If you want to run the provisionner only, you can always call :</p>
+<pre><code>vagrant provision ansible-master
+vagrant provision windows-guest</code></pre>
+<h3 id="connect-to-guests">5/ Connect to guests:</h3>
+<h4 id="credentials">Credentials</h4>
+<p>In many cases, vagrant boxes are made with two accounts, an administrator and a normal user account with the <strong>vagrant</strong> password. Exemple :</p>
+<ul>
+<li>Admin Windows box : <strong><em>Administrator</em></strong> / <strong><em>vagrant</em></strong></li>
+<li>Admin linux box : <strong><em>root</em></strong> / <strong><em>vagrant</em></strong></li>
+<li>Normal user : <strong><em>vagrant</em></strong> / <strong><em>vagrant</em></strong></li>
+</ul>
+<p>For linux host, the auth is made with an auth key (stored in your host user_home_dir/.vagrant.d/). For windows host, <strong><em>config.winrm.username</em></strong> and <strong><em>config.winrm.password</em></strong></p>
+<h4 id="connection-to-linux-ansible-master">Connection to linux ansible-master</h4>
+<p>The connection to ansible-master linux host is made through ssh. If your host is a linux, no problem native ssh will handle the ssh connection. For windows hosts, the simplest way to bring the ssh command is to install git executable and be sure to select &quot;Use Git and optional Unix tools from the windows Command Prompt&quot; see <a href="https://git-scm.com/download/win" class="uri">https://git-scm.com/download/win</a>. This will bring ssh command line executable to your windows hosts</p>
+<p>The command to connect ssh to your ansible-master node is:</p>
+<pre><code>vagrant ssh ansible-master</code></pre>
+<h5 id="connection-to-windows-guest">Connection to windows-guest</h5>
+<p>Note : one common problem that happens when starting automating anything is to use &quot;non-interactive&quot; commands. If a deploy script contains a confirmation to run, it will just hang indefinitely when executing by the autmated system. RDP Connection can ask for SSL confirmation before going on. This justify the next command that allows us to run an rdp connection from command line (extra parameter should be tested and maybe changed on windows hosts)</p>
+<p>Windows hosts will be able to connect easily using native rdp client mstsc. The drawback is that mstsc executable cannot get user/password from command line and has no options to skip ssl verification.</p>
+<pre><code>vagrant rdp windows-guest </code></pre>
+<p>For Linux hosts, the simplest way to bring a rdp client like freerdp.</p>
+<pre><code>sudo apt-get install freerdp</code></pre>
+<p>Ex with freerdp from linux host ( -- allows you to add args to freerdp program)</p>
+<pre><code>vagrant rdp windows-guest  -- /cert-ignore</code></pre>
+<hr />
+<h2 id="ansible">ANSIBLE</h2>
+<p>Every commands executed here will be run from the ansible-master host</p>
+<h3 id="bare-concepts">Bare concepts</h3>
+<p><a href="https://www.it-connect.fr/debutez-avec-ansible-et-gerez-vos-serveurs-windows/">Tres bon article pour debuter avec ansible et windows</a> <a href="http://people.ds.cam.ac.uk/jw35/docs/ansible/ansible-summary.html">Very good summary</a></p>
+<p>Our vms are ready, we now have to dig into Ansible:</p>
+<ul>
+<li>Ansible can connect to nodes to perform tasks on them</li>
+<li>The nodes are refered in an inventory (ini file like) where there dns/IP are sorted into groups.</li>
+<li>It can do it using two modes : adhoc (single command performed on a set of nodes) and playbook (playbook recipe applied)</li>
+<li>Task can be copying files, setting soft or system functionnalites, start/ensure service running, templating files with variables</li>
+<li>To define a task work, we call a module with args. When calling modules, we can get also some facts about the execution and get a return value, an exception test</li>
+<li>Variables can be set are several different level to avoid redundancy defintions</li>
+<li>Playbooks are used to organize tasks and variables, roles is an other level of file organization</li>
+</ul>
+<h3 id="ansible-directory-typical-file-architecture">Ansible directory typical file architecture</h3>
+<p>Everything could be written in one big file, but ansible provides playbooks and include to get a clearer and handy file architecture.</p>
+<p><a href="http://docs.ansible.com/ansible/playbooks_best_practices.html#best-practices">See best pratices</a></p>
+<pre><code>ansible/
+       +
+       |
+       +staging.yml                          # playbook for staging env 
+       |
+       +production.yml                       # Playbook for prod env
+       |
+       |
+       +webserver.yml                        # Playbook for deploying a webserver
+       |
+       |
+       +hosts                                # def of hosts and group 
+       |
+       +group_vars/windows.yml               # variables def for windows group
+       |            +
+       |            +all.yml                 # variables def for all hosts groups
+       |            |
+       |            +...
+       |
+       +host_vars/192.168.130.100.yml        # variables def specifique for 192.168.130.100 host 
+       |           |
+       |           +...
+       |
+       |
+       +roles/common/tasks/                  # List of tasks definition files
+       |     |      |       |
+       |     |      |       +main.yml
+       |     |      |
+       |     |      /vars/                  # List of vars automatically loaded when playing this role
+       |     |      |       |
+       |     |      |       +main.yml
+       |     |      |   
+       |     |      /meta/                  # Role dependencies 
+       |     |      |       |
+       |     |      |       +main.yml
+       |     |      |   
+       |     |      /defaults/              # Role defaults values
+       |     |      |       |
+       |     |      |       +main.yml
+       |     |      |
+       |     |      /files/                 # Roles files to provide
+       |     |      |       
+       |     |      |       
+       |     |      |
+       |     |      /templates/             # Roles templated files (typically .j2 files) 
+       |     |      |       
+       |     |      |       
+       |     |      |
+       |     |      /library/               # Plugin library
+       |     |              |
+       |     |              +main.yml
+       |     |            
+       |     /webserver/
+       | 
+       + ...
+                                  </code></pre>
+<h4 id="modules">1/ Modules</h4>
+<p>These are a where the jobs of the tasks are defined, it's like a method with it's args, return value, exception.... They are like library and plugins, Ansible can be extended to get new modules added to the standard ones brought at ansible installation time.</p>
+<p>To list all available modules, type :</p>
+<pre><code>ansible-doc -l</code></pre>
+<p>If you want documentation about a particular module, for instance <strong>file</strong> module :</p>
+<pre><code>ansible-doc file
+ &gt; FILE
+
+  Sets attributes of files, symlinks, and directories, or removes files/symlinks/directories. Many other modules support the same options as the [file] module - including [copy], [template],
+  and [assemble].
+
+Options (= is mandatory):
+
+- follow
+        This flag indicates that filesystem links, if they exist, should be followed.
+        (Choices: yes, no)[Default: no]
+- force
+        force the creation of the symlinks in two cases: the source file does not exist (but will appear later); the destination exists and is a file (so, we need to unlink the &quot;path&quot; file
+        and create symlink to the &quot;src&quot; file in place of it).
+        (Choices: yes, no)[Default: no]
+- group
+        name of the group that should own the file/directory, as would be fed to `chown&#39;
+        [Default: None]
+- mode
+        mode the file or directory should be. For those used to `/usr/bin/chmod&#39; remember that modes are actually octal numbers (like 0644). Leaving off the leading zero will likely have
+        unexpected results. As of version 1.8, the mode may be specified as a symbolic mode (for example, `u+rwx&#39; or `u=rw,g=r,o=r&#39;).
+        [Default: None]
+- owner
+        name of the user that should own the file/directory, as would be fed to `chown&#39;
+        [Default: None]
+= path
+        path to the file being managed.  Aliases: `dest&#39;, `name&#39;
+        [Default: []]
+- recurse
+        recursively set the specified file attributes (applies only to state=directory)
+        (Choices: yes, no)[Default: no]
+- selevel
+        level part of the SELinux file context. This is the MLS/MCS attribute, sometimes known as the `range&#39;. `_default&#39; feature works as for `seuser&#39;.
+        [Default: s0]
+- serole
+        role part of SELinux file context, `_default&#39; feature works as for `seuser&#39;.
+        [Default: None]
+- setype
+        type part of SELinux file context, `_default&#39; feature works as for `seuser&#39;.
+        [Default: None]
+- seuser
+        user part of SELinux file context. Will default to system policy, if applicable. If set to `_default&#39;, it will use the `user&#39; portion of the policy if available
+        [Default: None]
+- src
+        path of the file to link to (applies only to `state=link&#39;). Will accept absolute, relative and nonexisting paths. Relative paths are not expanded.
+        [Default: None]
+- state
+        If `directory&#39;, all immediate subdirectories will be created if they do not exist, since 1.7 they will be created with the supplied permissions. If `file&#39;, the file will NOT be
+        created if it does not exist, see the [copy] or [template] module if you want that behavior.  If `link&#39;, the symbolic link will be created or changed. Use `hard&#39; for hardlinks. If
+        `absent&#39;, directories will be recursively deleted, and files or symlinks will be unlinked. Note that [file] will not fail if the `path&#39; does not exist as the state did not change. If
+        `touch&#39; (new in 1.4), an empty file will be created if the `path&#39; does not exist, while an existing file or directory will receive updated file access and modification times (similar
+        to the way `touch` works from the command line).
+        (Choices: file, link, directory, hard, touch, absent)[Default: file]
+- unsafe_writes
+        Normally this module uses atomic operations to prevent data corruption or inconsistent reads from the target files, sometimes systems are configured or just broken in ways that
+        prevent this. One example are docker mounted files, they cannot be updated atomically and can only be done in an unsafe manner.
+        This boolean option allows ansible to fall back to unsafe methods of updating files for those cases in which you do not have any other choice. Be aware that this is subject to race
+        conditions and can lead to data corruption.
+        [Default: False]
+Notes:
+  * See also [copy], [template], [assemble]
+EXAMPLES:
+# change file ownership, group and mode. When specifying mode using octal numbers, first digit should always be 0.
+- file: path=/etc/foo.conf owner=foo group=foo mode=0644
+- file: src=/file/to/link/to dest=/path/to/symlink owner=foo group=foo state=link
+- file: src=/tmp/{{ item.src }} dest={{ item.dest }} state=link
+  with_items:
+    - { src: &#39;x&#39;, dest: &#39;y&#39; }
+    - { src: &#39;z&#39;, dest: &#39;k&#39; }</code></pre>
+<h4 id="inventory">2/ Inventory</h4>
+<p>The list of hosts and groups that will be targeted by ansible. <a href="http://docs.ansible.com/ansible/intro_inventory.html">Inventory doc</a></p>
+<p>for the current examples we defined only one host called &quot;192.168.130.100&quot; in the group windows:</p>
+<pre><code>[windows]
+192.168.130.100</code></pre>
+<h4 id="variables">3/ Variables</h4>
+<p>Ansible is designed to be highly parametrable with variables. These variables can be defined at many places, to name:</p>
+<ul>
+<li>the inventory can contains variable definition per host or group</li>
+<li>playbook files can contain variables and explicit include of var files</li>
+<li>if you have a typical directory tree like above, you can store you variable in clever ways using group_vars and host_vars directory</li>
+</ul>
+<h3 id="ansible-adhoc-mode">Ansible adhoc mode</h3>
+<p>In adhoc module, we will use ansible command to perform ponctual module call on our windows host. The command will look like:</p>
+<pre><code>ansible -i inventory HOST_FILTER -m module [-a &quot;MODULE_ARGS&quot;] [OPTS]</code></pre>
+<p>Where:</p>
+<ul>
+<li><strong>inventory</strong> is either the path to the inventory file, either a list of comma separated host</li>
+<li><strong>HOST_FILTER</strong> can be
+<ul>
+<li><strong><em>all</em></strong> : apply the command on all host defined</li>
+<li><strong>windows</strong> : apply the command on the <strong>windows</strong> group define in inventory</li>
+<li><strong>192.168.130.100</strong> : apply the command on the <strong>192.168.130.100</strong> host</li>
+</ul></li>
+<li><strong>[ -a &quot;MODULE_ARGS&quot;]</strong> : if calling module with args, add -a and put the module call args &quot;k=v k2=v2 ...&quot;</li>
+<li><strong>[OPTS]</strong> : ansible call options</li>
+</ul>
+<h4 id="ansible-to-windows-guest-connection-setup-and-ping">Ansible to windows guest connection setup and ping</h4>
+<h5 id="credentials-configg">1/ Credentials configg</h5>
+<p>The module we will use is the most basic of all: <strong>ping</strong>, which only try to establish the connection to the guest. Beware: - this is NOT AN ICMP ping - this try to establish the command connection, which is by default an ssh connection. With our windows guest, we will use <strong>win_ping</strong> to make the ping accross winrm connection</p>
+<p>To connect to our windows host, <strong>win_ping</strong> needs to have the following variables loaded before the module:<br />
+- ansible_user: # User to be on guest machineg - ansible_password: # user password - ansible_port: 5986 # Winrm port - ansible_connection: winrm # winrm connection type - ansible_winrm_server_cert_validation: ignore # Ignore cert verif, interactive is relou</p>
+<p>Theses variable SHOULD be defined in either:</p>
+<ul>
+<li><p>group_vars/windows.yml : the variables in these files will be loaded whenever a host in the windows group is targeted in the host filter</p></li>
+<li><p>host_vars/192.168.130.100.yml : the previous variable can be overriden by ansible if they contains the same as the default variable loading precedence is group_vars/all.yml &gt; group_vars/all.yml &gt; host_vars/192.168.130.100.yml</p></li>
+</ul>
+<p>Anyway, typically in web arch deployement, all host running micro service may be created / destructed on the fly according to the load the system receives. In this case, it's simple to have the same system user accounts on all the group windows, thus we SHOULD place it in group_vars/windows.yml</p>
+<h5 id="ping-the-windows-host">2/ Ping the windows host</h5>
+<p>Once done, we can test the connection to the host 192.168.130.100 which is in the windows groupe host :</p>
+<pre><code>ansible -i hosts windows -m win_ping </code></pre>
+<p>Outputs: <code>192.168.130.100 | SUCCESS =&gt; {     &quot;changed&quot;: false,      &quot;ping&quot;: &quot;pong&quot; }</code></p>
+<p>We can ping all machine in host inventory, the variable load mechanism will be able to fetch the winrm connection data because it will load all group_vars/* file:</p>
+<pre><code>ansible -i hosts all -m win_ping</code></pre>
+<p>Outputs:</p>
+<pre><code>192.168.130.100 | SUCCESS =&gt; {
+    &quot;changed&quot;: false, 
+    &quot;ping&quot;: &quot;pong&quot;
+}</code></pre>
+<p>Or we can ping only 192.168.130.100 host:</p>
+<pre><code>ansible -i hosts 192.168.130.100 -m win_ping </code></pre>
+<p>Outputs:</p>
+<pre><code>192.168.130.100 | SUCCESS =&gt; {
+    &quot;changed&quot;: false, 
+    &quot;ping&quot;: &quot;pong&quot;
+}</code></pre>
+<h5 id="get-informations-about-our-host">3/ Get informations about our host :</h5>
+<p>We will use the setup method will returns information about the targeted hosts :</p>
+<pre><code>ansible -i hosts windows -m setup </code></pre>
+<p>Outputs:</p>
+<pre><code> 192.168.130.100 | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;ansible_architecture&quot;: &quot;64-bit&quot;, 
+        &quot;ansible_bios_date&quot;: &quot;11/30/2006&quot;, 
+        &quot;ansible_bios_version&quot;: &quot;VirtualBox&quot;, 
+        &quot;ansible_date_time&quot;: {
+            &quot;date&quot;: &quot;2017-02-16&quot;, 
+            &quot;day&quot;: &quot;16&quot;, 
+            &quot;epoch&quot;: &quot;1487237515.96161&quot;, 
+            &quot;hour&quot;: &quot;09&quot;, 
+            &quot;iso8601&quot;: &quot;2017-02-16T17:31:55Z&quot;, 
+            &quot;iso8601_basic&quot;: &quot;20170216T093155930422&quot;, 
+            &quot;iso8601_basic_short&quot;: &quot;20170216T093155&quot;, 
+            &quot;iso8601_micro&quot;: &quot;2017-02-16T17:31:55.930422Z&quot;, 
+            &quot;minute&quot;: &quot;31&quot;, 
+            &quot;month&quot;: &quot;02&quot;, 
+            &quot;second&quot;: &quot;55&quot;, 
+            &quot;time&quot;: &quot;09:31:55&quot;, 
+            &quot;tz&quot;: &quot;Pacific Standard Time&quot;, 
+            &quot;tz_offset&quot;: &quot;-08:00&quot;, 
+            &quot;weekday&quot;: &quot;Thursday&quot;, 
+            &quot;weekday_number&quot;: &quot;4&quot;, 
+            &quot;weeknumber&quot;: &quot;6&quot;, 
+            &quot;year&quot;: &quot;2017&quot;
+        }, 
+        &quot;ansible_distribution&quot;: &quot;Microsoft Windows Server 2012 R2 Standard&quot;, 
+        &quot;ansible_distribution_major_version&quot;: &quot;6&quot;, 
+        &quot;ansible_distribution_version&quot;: &quot;6.3.9600.0&quot;, 
+        &quot;ansible_domain&quot;: &quot;&quot;, 
+        &quot;ansible_env&quot;: {
+            &quot;ALLUSERSPROFILE&quot;: &quot;C:\\ProgramData&quot;, 
+            &quot;APPDATA&quot;: &quot;C:\\Users\\Administrator\\AppData\\Roaming&quot;, 
+            &quot;COMPUTERNAME&quot;: &quot;WINDOWS-GUEST&quot;, 
+            &quot;ComSpec&quot;: &quot;C:\\Windows\\system32\\cmd.exe&quot;, 
+            &quot;CommonProgramFiles&quot;: &quot;C:\\Program Files\\Common Files&quot;, 
+            &quot;CommonProgramFiles(x86)&quot;: &quot;C:\\Program Files (x86)\\Common Files&quot;, 
+            &quot;CommonProgramW6432&quot;: &quot;C:\\Program Files\\Common Files&quot;, 
+            &quot;FP_NO_HOST_CHECK&quot;: &quot;NO&quot;, 
+            &quot;LOCALAPPDATA&quot;: &quot;C:\\Users\\Administrator\\AppData\\Local&quot;, 
+            &quot;MODULE_COMPLEX_ARGS&quot;: &quot;{\&quot;_ansible_version\&quot;: \&quot;2.2.1.0\&quot;, \&quot;_ansible_selinux_special_fs\&quot;: [\&quot;fuse\&quot;, \&quot;nfs\&quot;, \&quot;vboxsf\&quot;, \&quot;ramfs\&quot;], \&quot;_ansible_no_log\&quot;: false, \&quot;_ansible_module_name\&quot;: \&quot;setup\&quot;, \&quot;_ansible_verbosity\&quot;: 0, \&quot;_ansible_syslog_facility\&quot;: \&quot;LOG_USER\&quot;, \&quot;_ansible_diff\&quot;: false, \&quot;_ansible_debug\&quot;: false, \&quot;_ansible_check_mode\&quot;: false}&quot;, 
+            &quot;NUMBER_OF_PROCESSORS&quot;: &quot;2&quot;, 
+            &quot;OS&quot;: &quot;Windows_NT&quot;, 
+            &quot;PATHEXT&quot;: &quot;.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL&quot;, 
+            &quot;PROCESSOR_ARCHITECTURE&quot;: &quot;AMD64&quot;, 
+            &quot;PROCESSOR_IDENTIFIER&quot;: &quot;Intel64 Family 6 Model 60 Stepping 3, GenuineIntel&quot;, 
+            &quot;PROCESSOR_LEVEL&quot;: &quot;6&quot;, 
+            &quot;PROCESSOR_REVISION&quot;: &quot;3c03&quot;, 
+            &quot;PROMPT&quot;: &quot;$P$G&quot;, 
+            &quot;PSExecutionPolicyPreference&quot;: &quot;Unrestricted&quot;, 
+            &quot;PSModulePath&quot;: &quot;C:\\Users\\Administrator\\Documents\\WindowsPowerShell\\Modules;C:\\Program Files\\WindowsPowerShell\\Modules;C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\Modules&quot;, 
+            &quot;PUBLIC&quot;: &quot;C:\\Users\\Public&quot;, 
+            &quot;Path&quot;: &quot;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0&quot;, 
+            &quot;ProgramData&quot;: &quot;C:\\ProgramData&quot;, 
+            &quot;ProgramFiles&quot;: &quot;C:\\Program Files&quot;, 
+            &quot;ProgramFiles(x86)&quot;: &quot;C:\\Program Files (x86)&quot;, 
+            &quot;ProgramW6432&quot;: &quot;C:\\Program Files&quot;, 
+            &quot;SystemDrive&quot;: &quot;C:&quot;, 
+            &quot;SystemRoot&quot;: &quot;C:\\Windows&quot;, 
+            &quot;TEMP&quot;: &quot;C:\\Users\\ADMINI~1\\AppData\\Local\\Temp&quot;, 
+            &quot;TMP&quot;: &quot;C:\\Users\\ADMINI~1\\AppData\\Local\\Temp&quot;, 
+            &quot;USERDOMAIN&quot;: &quot;WINDOWS-GUEST&quot;, 
+            &quot;USERNAME&quot;: &quot;Administrator&quot;, 
+            &quot;USERPROFILE&quot;: &quot;C:\\Users\\Administrator&quot;, 
+            &quot;windir&quot;: &quot;C:\\Windows&quot;
+        }, 
+        &quot;ansible_fqdn&quot;: &quot;windows-guest.&quot;, 
+        &quot;ansible_hostname&quot;: &quot;WINDOWS-GUEST&quot;, 
+        &quot;ansible_interfaces&quot;: [
+            {
+                &quot;default_gateway&quot;: &quot;10.0.2.2&quot;, 
+                &quot;dns_domain&quot;: &quot;eucleia.corp&quot;, 
+                &quot;interface_index&quot;: 12, 
+                &quot;interface_name&quot;: &quot;Intel(R) PRO/1000 MT Desktop Adapter&quot;
+            }, 
+            {
+                &quot;default_gateway&quot;: null, 
+                &quot;dns_domain&quot;: null, 
+                &quot;interface_index&quot;: 15, 
+                &quot;interface_name&quot;: &quot;Intel(R) PRO/1000 MT Desktop Adapter #2&quot;
+            }
+        ], 
+        &quot;ansible_ip_addresses&quot;: [
+            &quot;10.0.2.15&quot;, 
+            &quot;fe80::e488:b85c:5262:ff86&quot;, 
+            &quot;192.168.130.100&quot;, 
+            &quot;fe80::172:54cf:d348:cad3&quot;
+        ], 
+        &quot;ansible_kernel&quot;: &quot;6.3.9600.0&quot;, 
+        &quot;ansible_lastboot&quot;: &quot;2017-02-15 05:32:25Z&quot;, 
+        &quot;ansible_machine_id&quot;: &quot;S-1-5-21-3541430928-2051711210-1391384369&quot;, 
+        &quot;ansible_memtotal_mb&quot;: 2048, 
+        &quot;ansible_nodename&quot;: &quot;windows-guest.&quot;, 
+        &quot;ansible_os_family&quot;: &quot;Windows&quot;, 
+        &quot;ansible_os_name&quot;: &quot;Microsoft Windows Server 2012 R2 Standard&quot;, 
+        &quot;ansible_owner_contact&quot;: &quot;&quot;, 
+        &quot;ansible_owner_name&quot;: &quot;&quot;, 
+        &quot;ansible_powershell_version&quot;: 4, 
+        &quot;ansible_processor&quot;: [
+            &quot;GenuineIntel&quot;, 
+            &quot;Intel(R) Core(TM) i7-4702HQ CPU @ 2.20GHz&quot;, 
+            &quot;GenuineIntel&quot;, 
+            &quot;Intel(R) Core(TM) i7-4702HQ CPU @ 2.20GHz&quot;
+        ], 
+        &quot;ansible_processor_cores&quot;: 2, 
+        &quot;ansible_processor_count&quot;: 1, 
+        &quot;ansible_processor_threads_per_core&quot;: 1, 
+        &quot;ansible_processor_vcpus&quot;: 2, 
+        &quot;ansible_product_name&quot;: &quot;VirtualBox&quot;, 
+        &quot;ansible_product_serial&quot;: &quot;0&quot;, 
+        &quot;ansible_reboot_pending&quot;: true, 
+        &quot;ansible_swaptotal_mb&quot;: 0, 
+        &quot;ansible_system&quot;: &quot;Win32NT&quot;, 
+        &quot;ansible_system_description&quot;: &quot;&quot;, 
+        &quot;ansible_system_vendor&quot;: &quot;innotek GmbH&quot;, 
+        &quot;ansible_uptime_seconds&quot;: 100771, 
+        &quot;ansible_user_dir&quot;: &quot;C:\\Users\\Administrator&quot;, 
+        &quot;ansible_user_gecos&quot;: &quot;&quot;, 
+        &quot;ansible_user_id&quot;: &quot;Administrator&quot;, 
+        &quot;ansible_user_sid&quot;: &quot;S-1-5-21-3541430928-2051711210-1391384369-500&quot;, 
+        &quot;ansible_win_rm_certificate_expires&quot;: &quot;2018-02-12 23:01:45&quot;, 
+        &quot;ansible_windows_domain&quot;: &quot;WORKGROUP&quot;, 
+        &quot;module_setup&quot;: true
+    }, 
+    &quot;changed&quot;: false
+}
+</code></pre>
+<h4 id="miscellaneous-adhoc-task-example---a-little-discovery">Miscellaneous adhoc task example - a little discovery</h4>
+<h5 id="copy-a-file-win_copy-module">1/ Copy a file: win_copy module</h5>
+<p>To copy a file on all windows group hosts, use the win_copy module :</p>
+<pre><code>ansible -i hosts windows -m win_copy -a &quot;src=./files/youhou.txt dest=C:/Users/Administrator/Desktop/youhou&quot; 
+192.168.130.100 | SUCCESS =&gt; {
+    &quot;changed&quot;: true, 
+    &quot;checksum&quot;: &quot;8952089e37a24bf761ce8fc0122319f9b4f72c3f&quot;, 
+    &quot;operation&quot;: &quot;file_copy&quot;, 
+    &quot;original_basename&quot;: &quot;youhou.txt&quot;, 
+    &quot;size&quot;: 16
+}</code></pre>
+<h5 id="send-a-templated-file-win_template">2/ Send a templated file: win_template</h5>
+<p>Here the variable value is given as an extra args. More about setting template variables in playbook chapter</p>
+<pre><code>ansible -i hosts windows -m win_template -a &quot;src=./files/index.html.j2 dest=C:/Users/Administrator/Desktop/index.html&quot; 
+-e hello_msg=toto
+192.168.130.100 | SUCCESS =&gt; {
+    &quot;changed&quot;: true, 
+    &quot;operation&quot;: &quot;file_copy&quot;, 
+    &quot;original_basename&quot;: &quot;index.html.j2&quot;, 
+    &quot;size&quot;: 333
+}</code></pre>
+<h5 id="execute-a-powershell-script">3/ Execute a powershell script:</h5>
+<p>With this method, the script is executed from a localfile, lines of the script are pushed to the remote host to be exeted.</p>
+<pre><code>ansible -i hosts windows -m script  -a &quot;files/Hello.ps1 -a b --clong d&quot;
+192.168.130.100 | SUCCESS =&gt; {
+    &quot;changed&quot;: true, 
+    &quot;operation&quot;: &quot;file_copy&quot;, 
+    &quot;original_basename&quot;: &quot;index.html.j2&quot;, 
+    &quot;size&quot;: 333
+}</code></pre>
+<p>We can also push a script, and then use win_shell module to execute a script that resides on the host:</p>
+<pre><code>ansible -i hosts windows -m win_copy  -a &quot;src=files/Hello.ps1  dest=C:/Users/Administrator/Desktop/Hello.ps1&quot; 
+ansible -i hosts windows -m win_shell -a &quot;C:/Users/Administrator/Desktop/Hello.ps1 -a b --clong d chdir=C:/Users/Administrator/&quot;</code></pre>
+<h3 id="ansible-playbook-mode">Ansible playbook mode</h3>
+<p>Adhoc is great to test single module and send commands ponctually. The power of ansible is to give the ability to describe deployement recipes into playbooks. These playbook describes a series of tasks that will be run in order as they are described in a .yml playbook file.</p>
+<p>To execute a playbook you just need to run the ansible-playbook command:</p>
+<pre><code>ansible-playbook -i hosts ping.yml </code></pre>
+<h1 id="you-can-add-more-verbosity-to-have-debug-output-by-adding--v--vv...-to-the-args-of-the-command.">You can add more verbosity to have debug output by adding <strong>-v</strong>, <strong>-vv...</strong> to the args of the command.</h1>
+<h3 id="playbook-content">1/ Playbook content:</h3>
+<h4 id="basic-structure"> Basic structure:</h4>
+<p>Here is the basic structure of a playbook, it must contains at least a hosts field telling the HOST_FILTER like with the adhoc mode. It although must contains at least a list of tasks or an include to a role. You SHOULD by the way give a field &quot;name&quot; to your playbook</p>
+<pre><code>---
+- name: &quot;Reboot hosts&quot;
+  hosts: windows
+  tasks:
+    - win_reboot:
+            msg: &quot;Test reboot&quot; </code></pre>
+<hr />
+<hr />
+<hr />
+<h4 id="execute-script-shell-in-a-playbook">1/ Execute script shell in a playbook</h4>
+<p>The basic playbook example <a href="ansible/execute_powershell.yml" class="uri">ansible/execute_powershell.yml</a> executes the shell script on all the windows hosts.</p>
+<pre><code>ansible-playbook -vvv  -i hosts  execute_powershell.yml</code></pre>
+<h4 id="webserver-playbook">2/ Webserver playbook:</h4>
+<p>The goal of the playbook here is to setup a website on an IIS server. Basically, the steps invovled are: - enabling IIS features on the server - start the IIS server - create a website on IIS - deploy it's config</p>
+<p>For this example, we will use the implicit includes of all main.yml files and we will not discuss the manual include mechanism. So what do we have to do now? Just feed the tasks in main.yml files, set the variables for the role configuration and configure all handlers. Handlers are like tasks, but there are called with &quot;notify&quot; keyword which trigs the action once the tasks is done.</p>
+<ul>
+<li>Create the tasks:</li>
+</ul>
+<p>We will have to edit the tasks/main.yml file to add the tasks. First of all, we will use the win_feature module to set up IIS.</p>
+</body>
+</html>

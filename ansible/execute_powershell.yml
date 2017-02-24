@@ -1,0 +1,7 @@
+---
+- name: "un powershell script"
+  hosts: windows
+  gather_facts: false
+  tasks:
+    - name: "Execute script in push model"
+      script: files/Hello.ps1 -a b --clong hellow

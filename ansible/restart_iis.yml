@@ -1,0 +1,10 @@
+---
+- name: "Restarts  IIS"
+  hosts: windows
+  tasks:
+    - win_service: name=w3svc state=restarted
+
+
+
+
+

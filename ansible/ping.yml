@@ -1,0 +1,13 @@
+---
+- name: "Ping hosts"
+  hosts: windows
+  gather_facts: true
+  tasks:
+    - name: "Ping hosts"
+      win_ping:
+
+
+
+
+
+

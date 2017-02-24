@@ -1,0 +1,6 @@
+---
+- name: "Setup Windows host env"
+  hosts: windows
+  gather_facts: false
+  roles:
+  - windows

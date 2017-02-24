@@ -1,0 +1,33 @@
+---
+- name: "Setup windows updates"
+  hosts: windows
+  gather_facts: false
+  tasks:
+    - name: "Search windows updates"
+      win_updates:
+        state: searched
+        log_path: "c:\ansible_wu.txt"
+      register: update_count
+
+    - name: "Setup Updates"
+      win_updates:
+        category_names:
+          - Application
+          - Connectors
+          - DefinitionUpdates
+          - DeveloperKits
+          - FeaturePacks
+          - Guidance
+          - ServicePacks
+          - Tools
+          - UpdateRollups
+          - CriticalUpdates
+          - SecurityUpdates
+
+      register: update_result
+      when: update_count.found_update_count|int >= 1
+
+    - name: "Reboot if needed"
+      win_reboot: msg="Windows updates by ansible"
+      when: update_result.reboot_required
+
